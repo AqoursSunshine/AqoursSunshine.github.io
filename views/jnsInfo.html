@@ -1,0 +1,63 @@
+<div class="container" style="padding-top: 50px;">
+
+    <h1>JNS
+        <small>查看JNS名字信息</small>
+    </h1>
+
+    <div id="jns-97785883" class="jnsdiv">
+        <table class="table table-striped" cellpadding="0" cellspacing="0" style="padding:0px;float:left;margin:0px;width:100%">
+            <tbody>
+            <tr>
+				<th colspan="3" align="left"><a class="hash-link" href="./#/jns/{{jnsId}}">{{jnsId}}</a> {{jnsIdError}}
+
+					<span ng-style="{ 'display': jnsIdError && chainId == '0xe52' && account.toLowerCase() == jnsContractOwner.toLowerCase() ? 'inline-block' : 'none' }">
+						<button ng-click="mintJNS(jnsId)">🔨</button>
+					</span>
+
+					<span class="pull-right"><image height="14px" src="{{logo}}"></image> {{boundAddress}}</span>
+				</th>
+            </tr>
+            </tbody>
+        </table>
+        <div style="padding-bottom:30px;width:100%;text-align:right;clear:both">
+			<span style="color:#999"><p style="word-break:break-all;">{{hexdata}}</p></span>
+			<input type="button" value="绑定" class="btn btn-success" ng-click="bind()"></input>
+			<button class="btn btn-secondary" ng-click="unbind()">解绑定</button>
+			<span ng-style="{ 'display': (chainId == '0xe52' && account.toLowerCase() == ownerAddress.toLowerCase()) ? 'inline-block' : 'none' }"><button class="btn btn-primary cb" ng-click="give()">📤</button></span>
+        </div>
+        <table class="table table-striped">
+            <tbody><tr>
+                <th colspan="2" style="text-align:left">概要</th>
+            </tr>
+            <tr>
+                <td>合约地址</td>
+                <td><a href="./#/address/{{contractAddress}}">{{contractAddress}}</a></td>
+            </tr>
+            <tr>
+                <td>NFT编号</td>
+                <td>{{nftId}}</td>
+            </tr>
+			<tr>
+                <td>NFT图案</td>
+				<td><image height="20px" src="{{logo}}"></image></td>
+			</tr>
+            <tr>
+                <td>持有者</td>
+                <td><a href="./#/address/{{ownerAddress}}">{{ownerAddress}}</a></td>
+            </tr>
+            <tr>
+                <td>绑定地址</td>
+                <td>
+					{{boundAddress}}
+                </td>
+            </tr>
+			<tr data-ng-if="boundAddress !== undefined && boundAddress !== '未绑定'">
+                <td>数字身份 DID</td>
+				<td><a href="./#/did/{{jnsId}}">{{jnsId}}（点击进入该数字身份DID资料页面）</a></td>
+			</tr>
+
+            </tbody>
+        </table>
+    </div>
+
+</div>

@@ -1,0 +1,180 @@
+<div class="container" style="padding-top: 50px;">
+
+    <h1>链上红包
+        <small>
+			<span data-ng-if="redpacketId == undefined">
+				创建红包
+			</span>
+			<span data-ng-if="redpacketId !== undefined">
+				抢红包
+			</span>
+		</small>
+    </h1>
+
+    <div id="redpacket-97785883" class="redpacketdiv">
+        <table class="table table-striped" cellpadding="0" cellspacing="0" style="padding:0px;float:left;margin:0px;width:100%">
+            <tbody>
+            <tr>
+				<th colspan="2" align="left">
+					红包编号：
+					<span data-ng-if="redpacketId == undefined">
+						{{ newpacketId }}
+					</span>
+					<span data-ng-if="redpacketId !== undefined">
+						{{ redpacketId }}
+					</span>
+				</th>
+            </tr>
+            <tr>
+                <td>说明</td>
+				<td data-ng-if="redpacketId == undefined">Joule红包需要持有wJ (wrapped Joule)才可以创建。首先指定红包大小（不超过2000 WJ）和红包个数（不超过500个），授权扣除wJ，创建红包。将红包链接通过社交网络传播，拥有JTI认证的地址可以抢红包，每个地址每个红包限抢一次。</td>
+                <td data-ng-if="redpacketId !== undefined">Joule红包需要持有J，并且JTI认证后才可以抢。请保证URL中的红包ID是正确的。</td>
+            </tr>
+            <tr data-ng-if="redpacketId == undefined">
+                <td>红包大小</td>
+				<td><input type="text" id="new-redpacket-amount"></input>WJ (不超过2000 WJ)</td>
+            </tr>
+            <tr data-ng-if="redpacketId !== undefined">
+                <td>幸运数字</td>
+				<td><input type="text" id="open-redpacket-luckynum" ng-value="preGenLuckyNum"></input> (0 ~ 2^256-1 整数)</td>
+            </tr>
+            <tr data-ng-if="redpacketId == undefined">
+                <td>红包个数</td>
+				<td><input type="text" id="new-redpacket-quantity"></input>个 (不超过500个)</td>
+            </tr>
+			<tr data-ng-if="redpacketId == undefined">
+                <td nowrap>授权扣除wJ</td>
+				<td>
+                    <button data-ng-disabled="!connectedToJ" ng-click="redpacketWjApproveDialog()">
+                        <span data-ng-if="!connectedToJ" ng-style="{ 'color': 'red' }">请链接到Jouleverse链</span>
+                        <span data-ng-if="connectedToJ">授权wJ</span>
+                    </button>
+                </td>
+			</tr>
+            <tr>
+                <td data-ng-if="redpacketId == undefined">
+                    <button data-ng-disabled="!connectedToJ" ng-click="createRedPacket()">
+                        <span data-ng-if="!connectedToJ" ng-style="{ 'color': 'red' }">请链接到Jouleverse链</span>
+                        <span data-ng-if="connectedToJ">创建红包</span>
+                    </button>
+                </td>
+                <td data-ng-if="redpacketId !== undefined">
+                    <button data-ng-disabled="!connectedToJ || redpacketInfo_leftn === '0'" ng-click="openRedPacket()">
+                        <span data-ng-if="!connectedToJ" ng-style="{ 'color': 'red' }">请链接到Jouleverse链</span>
+                        <span data-ng-if="connectedToJ && redpacketInfo_leftn !== '0'">抢红包</span>
+                        <span data-ng-if="connectedToJ && redpacketInfo_leftn === '0'">抢完了</span>
+                    </button>
+                    &nbsp;&nbsp;
+                    <a href="/#/redpacket">我也发一个</a>
+                </td>
+                <td></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div style="text-align:center" data-ng-if="redpacketId !== undefined">
+		<div>
+		<span><b>红包信息</b></span>
+		<table class="stats">
+			<tr>
+				<td>金额大小(WJ)</td>
+				<td>总个数</td>
+				<td>剩余金额(WJ)</td>
+				<td>剩余个数</td>
+			</tr>
+            <tr>
+				<td>{{ redpacketInfo_totalamt }}</td>
+				<td>{{ redpacketInfo_totaln }}</td>
+				<td> <span ng-style="{ 'color': redpacketInfo_leftamt === '0' ? 'red' : 'blue' }">{{ redpacketInfo_leftamt }}</span></td>
+				<td> <span ng-style="{ 'color': redpacketInfo_leftn === '0' ? 'red' : 'blue' }">{{ redpacketInfo_leftn }}</span></td>
+			</tr>
+		</table>
+		</div>
+
+	</div>
+
+    <div><br></div>
+
+    <div style="text-align:center" data-ng-if="redpacketId !== undefined">
+		<div>
+		<span><b>红包开启历史</b></span>
+		<table class="stats">
+			<tr>
+				<td>抢到的人</td>
+				<td>金额(WJ)</td>
+			</tr>
+            <tr data-ng-repeat="rhi in redPacketOpenHistoryList">
+				<td>{{ rhi.opener }}</td>
+				<td>{{ rhi.amount }}</td>
+			</tr>
+		</table>
+		</div>
+
+	</div>
+
+</div>
+
+<!-- dialog for approve wJoule -->
+<div id="dialog-approve-wjoule" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+
+        <!-- Modal content-->
+        <div class="modal-content">
+            <center><div class="modal-header">
+                    <h4 class="modal-title"><span id="">授权wJ</span></h4>
+            </div></center>
+            <div class="modal-body">
+                <code style="color:#0000ff">
+                    <div style="word-break:break-all;" id="">
+                        授权红包合约地址：<span id="approve-wj-to"></span>
+                        扣除：<span id="approve-wj-amount"> {{ redpacketAmount }} </span> wJ
+                        作为红包金额。
+                    </div>
+                    <div style="color:#ff0000;font-weight:bold;margin:5px 0 5px 0">
+                        警告：授权红包合约扣除自己地址里的WJ，授权WJ的过程不可逆。
+                    </div>
+                    <div style="float:right;">确定吗？</div>
+                </code>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-dismiss="modal" ng-click="redPacketWjApproveConfirm(redpacketAmount)">确定</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- end of dialog for approve wJoule -->
+
+<!-- dialog for display redpacketinfo to copy -->
+<div id="dialog-display-redpacketinfo-tocopy" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+
+        <!-- Modal content-->
+        <div class="modal-content">
+            <center><div class="modal-header">
+                    <h4 class="modal-title"><span id="">红包生成成功</span></h4>
+            </div></center>
+            <div class="modal-body">
+                <code style="color:#0000ff">
+                    <div style="word-break:break-all;" id="">
+                        红包地址：<span id="newpacket-copy-url"></span>
+                    </div>
+                    <div><br></div>
+                    <div style="word-break:break-all;" id="">
+                        红包大小：<span id="newpacket-copy-amount"></span>
+                    </div>
+                    <div><br></div>
+                    <div style="word-break:break-all;" id="">
+                        红包个数：<span id="newpacket-copy-quantity"></span>
+                    </div>
+                </code>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-dismiss="modal" ng-click="copyRedpacketInfoToClipboard()">复制到剪贴板</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">取消</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- end of dialog for display redpacketinfo to copy -->
