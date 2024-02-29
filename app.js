@@ -65,7 +65,8 @@ angular.module('ethExplorer', ['ngRoute','ui.bootstrap'])
 	    	const protocol = location.protocol;
 			const hostname = location.hostname;
 			var rpc_service;
-			rpc_service = 'rpc.jnsdao.com'; // for gh page test only
+            // for gh page workaround only
+			rpc_service = 'rpc.jnsdao.com';
 			//var hostname = 'localhost';
 			//var hostname = 'rpc.liujiaolian.com';
 			//var hostname = 'rpc.jnsdao.com'; //location.hostname; // FIXME manual fix

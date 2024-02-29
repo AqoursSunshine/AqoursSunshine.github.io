@@ -11,6 +11,7 @@ angular.module('ethExplorer')
 		{
 			$scope.redpacketAmount = $('#new-redpacket-amount')[0].value;
 			$('#approve-wj-to').text(redpacket_contract_address);
+			$('#approve-wj-from').text($scope.account);
 
 			$('#dialog-approve-wjoule').modal({keyboard:false, backdrop:'static'});
 			$('#dialog-approve-wjoule').modal('show');
@@ -18,14 +19,14 @@ angular.module('ethExplorer')
 
 		$scope.redPacketWjApproveConfirm = function (redpacketAmount)
 		{
-			console.log('Approve redpacketAmount: ' + redpacketAmount);
+			console.log('[redpacketInfo] Approve redpacketAmount: ' + redpacketAmount);
 
 			const DIALOG_TITLE = '红包授权WJ';
 			var inputError = '';
 
 			// Validate input
 			if (Number.isNaN(parseFloat(redpacketAmount)) || parseFloat(redpacketAmount) < 0 || parseFloat(redpacketAmount) > 2000) {
-				inputError += '授权红包大小非法: 红包大小必须在0~2000WJ之间用于授权。';
+				inputError += '授权红包总额非法: 红包总额必须在0~2000 WJ之间用于授权。';
 			}
 
 			if (inputError.length > 0) {
@@ -44,7 +45,11 @@ angular.module('ethExplorer')
 					if (!err) {
 						wj_contract.methods.approve(redpacket_contract_address, e)
 							.send({from: connectedAccount}, handlerShowTx(DIALOG_TITLE))
-							.then(handlerShowRct(DIALOG_TITLE));
+							.then((receipt) => {
+								dialogShowTxt(DIALOG_TITLE, '上链成功！');
+								// let's update the allowance.value
+								$scope.updateWJAllowance();
+							});
 					} else {
 						dialogShowTxt(DIALOG_TITLE, '错误：无法评估gas：' + err.message); //展示合约逻辑报错
 					}
@@ -60,17 +65,17 @@ angular.module('ethExplorer')
 			const quantity = $('#new-redpacket-quantity')[0].value;
 			var inputError = '';
 
-			console.log('Dialog title: ' + DIALOG_TITLE);
-			console.log('Packet ID: ' + newpacketId);
-			console.log('Packet amount: ' + amount);
-			console.log('Packet quantity: ' + quantity);
+			console.log('[redpacketInfo] Dialog title: ' + DIALOG_TITLE);
+			console.log('[redpacketInfo] Packet ID: ' + newpacketId);
+			console.log('[redpacketInfo] Packet amount: ' + amount);
+			console.log('[redpacketInfo] Packet quantity: ' + quantity);
 			
 			// Input validation
-			if (parseFloat(amount) < 0 || parseFloat(amount) > 2000) {
-				inputError += '红包大小非法: 输入红包大小必须在0~2000WJ之间。';
+			if (amount == '' ||parseFloat(amount) < 0 || parseFloat(amount) > 2000) {
+				inputError += '红包总额非法: 输入红包总额必须在0~2000 WJ之间。';
 			}
 
-			if (parseFloat(quantity) < 0 || parseFloat(quantity) > 500) {
+			if (quantity == '' || parseFloat(quantity) < 0 || parseFloat(quantity) > 500) {
 				inputError += ' 红包个数非法: 输入红包个数必须在0~500之间。';
 			}
 
@@ -98,6 +103,22 @@ angular.module('ethExplorer')
 
 			function displayRedPacketInfoToCopy(newpacketId, amount, quantity) {
 				return (receipt) => {
+					// hide the default dialog showing tx info.
+					dialogHide();
+
+					// save the red packet id to local storage for later retrieval
+					if (typeof(Storage) !== 'undefined') {
+						const n = parseInt(localStorage.getItem('TotalRedPackets') || 0);
+						localStorage.setItem('RedPacket' + n + 'Id', newpacketId);
+						localStorage.setItem('RedPacket' + n + 'Amount', amount);
+						localStorage.setItem('RedPacket' + n + 'Quantity', quantity);
+						localStorage.setItem('TotalRedPackets', n + 1);
+					}
+
+					// update the allowance value
+					$scope.updateWJAllowance();
+
+					// show info of redpacket for copying to clipboard
 					const newpacketCopyUrl = $location.absUrl() + '/' + newpacketId;
 					
 					$('#newpacket-copy-url').text(newpacketCopyUrl);
@@ -112,9 +133,9 @@ angular.module('ethExplorer')
 		$scope.copyRedpacketInfoToClipboard = function ()
 		{
 			var redpacketClipboardValue = '红包地址：' + document.getElementById('newpacket-copy-url').innerHTML + '\n \n';
-			redpacketClipboardValue += '红包大小：' + document.getElementById('newpacket-copy-amount').innerHTML + '\n \n';
+			redpacketClipboardValue += '红包总额：' + document.getElementById('newpacket-copy-amount').innerHTML + ' WJ\n \n';
 			redpacketClipboardValue += '红包个数：' + document.getElementById('newpacket-copy-quantity').innerHTML;
-			console.log('Clipboard value: ' + redpacketClipboardValue);
+			console.log('[redpacketInfo] Clipboard value: ' + redpacketClipboardValue);
 			
 			navigator.clipboard.writeText(redpacketClipboardValue);
 		}
@@ -126,9 +147,9 @@ angular.module('ethExplorer')
 			const luckynum = $('#open-redpacket-luckynum')[0].value;
 			var inputError = '';
 
-			console.log('Dialog title: ' + DIALOG_TITLE);
-			console.log('Packet ID: ' + redpacketId);
-			console.log('Lucky Number: ' + luckynum);
+			console.log('[redpacketInfo] Dialog title: ' + DIALOG_TITLE);
+			console.log('[redpacketInfo] Packet ID: ' + redpacketId);
+			console.log('[redpacketInfo] Lucky Number: ' + luckynum);
 
 			// Input validation
 			if (redpacketId.substr(0, 2) !== '0x') {
@@ -147,6 +168,7 @@ angular.module('ethExplorer')
 			if (window.ethereum && window.ethereum.isConnected()) {
 				web3.setProvider(window.ethereum);
 				const connectedAccount = window.ethereum.selectedAddress;
+				console.log('[redpacket > openRedPacket] connectedAccount: ', connectedAccount);
 				const redpacket_contract = new web3.eth.Contract(redpacket_ABI, redpacket_contract_address);
 
 				redpacket_contract.methods.open(redpacketId, luckynum).estimateGas({from: connectedAccount}, (err, gas) => {
@@ -168,10 +190,23 @@ angular.module('ethExplorer')
 		$scope.init = function()
 		{
 			$scope.redpacketId = $routeParams.redpacketId; // must in format 0x...
-			$scope.connectedToJ = window.ethereum?.chainId === '0xe52';
-			
-			console.log($scope.redpacketId);
-			console.log('ChainId: ' + $scope.connectedToJ);
+
+			// synchronized methods may not work...
+			//$scope.chainId = window.ethereum?.chainId;
+			//$scope.account= window.ethereum?.selectedAddress;
+
+			$scope.connectedToJ = () => { return $scope.chainId === '0xe52' }; //use closure for responsiveness
+
+			$scope.updateWJAllowance = () => {
+				getWJAllowance().then((allowance) => {
+					$scope.wjAllowance = allowance;
+				});
+			}; //the closure
+			$scope.updateWJAllowance(); //call it once
+
+			console.log('[redpacketInfo] redpacketId: ', $scope.redpacketId);
+			console.log('[redpacketInfo] wj allowance: ', $scope.wjAllowance);
+			console.log('[redpacketInfo] chain id, connected account: ', $scope.chainId, $scope.account);
 
 			if ($scope.redpacketId !== undefined) {
 				// Random generate a (0 ~ 10000) luck number if users do not want to input one
@@ -180,11 +215,49 @@ angular.module('ethExplorer')
 			} else {
 				// Random create new red packet Id
 				$scope.newpacketId = web3.utils.randomHex(32).toString();
+
+				// Retrieve all created red packets on this machine
+				$scope.myRedPacketList = [];
+				if (typeof(Storage) !== 'undefined') {
+					const total = localStorage.getItem('TotalRedPackets') || 0;
+					for (var i = 0; i < total; i++) {
+						const newpacketId = localStorage.getItem('RedPacket' + i + 'Id');
+						const amount = localStorage.getItem('RedPacket' + i + 'Amount');
+						const quantity = localStorage.getItem('RedPacket' + i + 'Quantity');
+						$scope.myRedPacketList.unshift({
+							'id': newpacketId,
+							'amount': amount,
+							'quantity': quantity
+						});
+					}
+				}
+			}
+
+			function getWJAllowance() {
+				var deferred = $q.defer();
+
+				if ($scope.connectedToJ() && $scope.account) {
+					const wj_contract = new web3.eth.Contract(wj_ABI, wj_contract_address);
+					wj_contract.methods.allowance($scope.account, redpacket_contract_address)
+						.call(function (err, allowance) {
+							if (!err) {
+								deferred.resolve(
+									web3.utils.fromWei(allowance, 'ether')
+								);
+							} else {
+								deferred.reject(err);
+							}
+						});
+				} else {
+					deferred.resolve('---');
+				}
+
+				return deferred.promise;
 			}
 
 			function displayRedPacketInfo(redpacketId) {
 				getRedPacketInfo(redpacketId).then(function(redpacketInfo){
-					console.log('Redpacket address info: ' + redpacketInfo.creator.toString());
+					console.log('[redpacketInfo] Redpacket address info: ' + redpacketInfo.creator.toString());
 					$scope.redpacketInfo_totalamt = redpacketInfo.total_e;
 					$scope.redpacketInfo_totaln = redpacketInfo.total_n;
 					$scope.redpacketInfo_leftamt = redpacketInfo.left_e;
@@ -224,11 +297,11 @@ angular.module('ethExplorer')
 				// redpacket open history list
 				$scope.redPacketOpenHistoryList = [];
 				const packetOpenedMaxIdx = parseFloat($scope.redpacketInfo_totaln) - parseFloat($scope.redpacketInfo_leftn);
-				console.log('Redpacket open history max idx: ' + packetOpenedMaxIdx);
+				console.log('[redpacketInfo] Redpacket open history max idx: ' + packetOpenedMaxIdx);
 
 				for (var i = 0; i < packetOpenedMaxIdx; i++) {
 					getSingleRedPacketOpenHistoryByIdx(redpacketId, i).then(function(openHistoryItem){
-						console.log('Redpacket address history opener: ' + openHistoryItem.opener.toString());
+						console.log('[redpacketInfo] Redpacket address history opener: ' + openHistoryItem.opener.toString());
 						$scope.redPacketOpenHistoryList.push({'amount': web3.utils.fromWei(openHistoryItem.amount, 'ether'), 'opener': openHistoryItem.opener.substr(0, 6) + '...'});
 					});
 				}
@@ -250,6 +323,39 @@ angular.module('ethExplorer')
 				});
 
 				return deferred.promise;
+			}
+
+			//////////////// add listeners /////////////////
+			if (window.ethereum) {
+				
+				window.ethereum.on('chainChanged', function (chainId) {
+					console.log("[redpacketInfo] switched to chain id: ", parseInt(chainId, 16));
+					$scope.chainId = chainId;
+					$scope.$apply();
+					$scope.updateWJAllowance();
+				});
+
+				window.ethereum.on('accountsChanged', function (accounts) {
+					console.log("[redpacketInfo] switched to account: ", accounts[0]);
+					$scope.account = accounts[0];
+					$scope.$apply();
+					$scope.updateWJAllowance();
+				});
+
+				window.ethereum
+					.request({ method: 'eth_chainId' })
+					.then((chainId) => {
+						console.log(`[redpacketInfo] got chain id: ${parseInt(chainId, 16)}`);
+						$scope.chainId = chainId;
+						const account = window.ethereum.selectedAddress;
+						$scope.account = account;
+						console.log("[redpacketInfo] connected account is: ", account);
+						$scope.$apply()
+						$scope.updateWJAllowance();
+					})
+					.catch((error) => {
+						console.error(`[redpacketInfo] error fetching chainId: ${error.code}: ${error.message}`);
+					});
 			}
 		};
 
